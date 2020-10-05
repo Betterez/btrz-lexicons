@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "tdd": "NODE_ENV=test node_modules/mocha/bin/mocha -w",
-    "test": "NODE_ENV=test mocha --ui bdd -t 15000",
+    "test": "NODE_ENV=test mocha --ui bdd -t 15000 --exit",
     "preversion": "npm test",
     "postversion": "git push origin master && git push --tags",
     "version": "git tag $1"
