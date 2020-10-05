@@ -1,4 +1,3 @@
-const _ = require("lodash");
 const assert = require("assert");
 const uuid = require("uuid");
 const {
@@ -30,13 +29,26 @@ function _findAll(simpleDao, propertiesToMatch) {
     .toArray();
 }
 
+function difference(requiredKeys, keys) {
+  return requiredKeys.filter((x) => {
+    return !keys.includes(x);
+  });
+}
+
+function findKeyFromValue(obj, value) {
+  const keys = Object.keys(obj);
+  const values = Object.values(obj);
+  const index = values.indexOf(value);
+  return keys[index];
+}
+
 async function insertMany(simpleDao, lexiconEntries) {
   lexiconEntries.forEach((entry) => {
     const requiredKeys = ["name", "values", "context"];
     const optionalKeys = ["accountId"];
     const keys = Object.keys(entry);
-    const missingKeys = _.difference(requiredKeys, keys);
-    const unknownKeys = _.without(keys, ...requiredKeys, ...optionalKeys);
+    const missingKeys = difference(requiredKeys, keys);
+    const unknownKeys = difference(keys, requiredKeys.concat(optionalKeys));
 
     assert(missingKeys.length === 0,
       `lexicon entry with name ${entry.name} is missing the following required keys: ${missingKeys.join(", ")}`);
@@ -45,7 +57,9 @@ async function insertMany(simpleDao, lexiconEntries) {
   });
 
   const db = await simpleDao.connect();
-  const lexiconEntryNames = lexiconEntries.map(_.property("name"));
+  const lexiconEntryNames = lexiconEntries.map((e) => {
+    return e.name;
+  });
   const lexiconEntryKeys = lexiconEntries.map((entry) => {
     if (entry.accountId) {
       return generateLexiconKey(entry.name, entry.accountId);
@@ -53,13 +67,18 @@ async function insertMany(simpleDao, lexiconEntries) {
 
     return entry.name;
   });
-  const namesToKeys = _.fromPairs(_.zip(lexiconEntryNames, lexiconEntryKeys));
+
+  const namesToKeys = lexiconEntryNames.reduce((ntk, len, index) => {
+    // eslint-disable-next-line no-param-reassign
+    ntk[len] = lexiconEntryKeys[index];
+    return ntk;
+  }, {});
   const dataToInsert = lexiconEntries.map((entry) => {
-    return Object.assign({}, entry, {
+    const obj = Object.assign({}, entry, {
       key: namesToKeys[entry.name]
     });
-  }).map((entry) => {
-    return _.omit(entry, ["name"]);
+    delete obj.name;
+    return obj;
   });
 
   let succeededOperations = [];
@@ -72,8 +91,9 @@ async function insertMany(simpleDao, lexiconEntries) {
     succeededOperations = writeResult.ops;
   } catch (err) {
     // err.writeErrors will exist when multiple inserts fail, but not when only one insert fails
-    const writeErrors = err.writeErrors ? err.writeErrors.map(_.property("err")) : [err];
-
+    const writeErrors = err.writeErrors ? err.writeErrors.map((e) => {
+      return e.err;
+    }) : [err];
     writeErrors.forEach((writeError) => {
       if (!writeError.op) {
         // Unexpected error from Mongo that we do not know how to handle
@@ -96,17 +116,13 @@ async function insertMany(simpleDao, lexiconEntries) {
   return {
     successes: succeededOperations.map((operation) => {
       return {
-        name: _.findKey(namesToKeys, (key) => {
-          return key === operation.key;
-        }),
+        name: findKeyFromValue(namesToKeys, operation.key),
         key: operation.key
       };
     }),
     failures: failedOperations.map((operation) => {
       return {
-        name: _.findKey(namesToKeys, (key) => {
-          return key === operation.key;
-        }),
+        name: findKeyFromValue(namesToKeys, operation.key),
         message: operation.message
       };
     })
@@ -128,8 +144,9 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
     const requiredKeys = ["key"];
     const optionalKeys = ["values", "context", "accountId"];
     const keys = Object.keys(entry);
-    const missingKeys = _.difference(requiredKeys, keys);
-    const unknownKeys = _.without(keys, ...requiredKeys, ...optionalKeys);
+    const missingKeys = difference(requiredKeys, keys);
+    const unknownKeys = difference(keys, requiredKeys.concat(optionalKeys));
+
 
     assert(missingKeys.length === 0, "lexicon update request is missing a \"key\"");
     assert(unknownKeys.length === 0,
@@ -137,17 +154,21 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
   });
 
   const lexiconEntryIdentifiers = _lexiconEntryUpdates.map((update) => {
-    return _.pick(update, ["key", "accountId"]);
+    return {
+      key: update.key,
+      accountId: update.accountId
+    };
   });
   const findExistingLexiconEntries = _findAll(simpleDao, lexiconEntryIdentifiers);
   const getDbConnection = simpleDao.connect();
   const [existingLexiconEntries, db] = await Promise.all([findExistingLexiconEntries, getDbConnection]);
+
   const entriesNotFound = _lexiconEntryUpdates.filter((update) => {
-    return !_.some(existingLexiconEntries, _.matches({
-      key: update.key,
-      accountId: update.accountId
-    }));
+    return !existingLexiconEntries.some((e) => {
+      return e.key === update.key && e.accountId === update.accountId;
+    });
   });
+
   const bulkUpdateOperation = db.collection(Lexicon.collectionName()).initializeUnorderedBulkOp();
 
   if (entriesNotFound.length > 0) {
@@ -161,14 +182,17 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
   }
 
   _lexiconEntryUpdates.forEach((entry) => {
-    let updateInstructions = {
-      ..._.mapKeys(entry.values, (_value, key) => {
-        return `values.${key}`;
-      }),
-      context: entry.context
-    };
-
-    updateInstructions = _.omitBy(updateInstructions, _.isNil);
+    const updateInstructions = Object.keys(entry.values || {})
+      .reduce((obj, key) => {
+        if (entry.values[key]) {
+          // eslint-disable-next-line no-param-reassign
+          obj[`values.${key}`] = entry.values[key];
+        }
+        return obj;
+      }, {});
+    if (entry.context) {
+      updateInstructions.context = entry.context;
+    }
     bulkUpdateOperation.find({
       key: entry.key, accountId: entry.accountId
     }).updateOne({

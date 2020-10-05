@@ -26,15 +26,23 @@ const {
 const lexiconCollectionName = Lexicon.collectionName();
 const uuid = require("uuid");
 
+function getValues() {
+  const values = allSupportedLanguages().reduce((obj, lan) => {
+    // eslint-disable-next-line no-param-reassign
+    obj[lan] = chance.sentence();
+    return obj;
+  }, {});
+
+  return values;
+}
+
 function getValidLexiconDbDocument(overrides = {}) {
   const validLexiconDbDocument = {
     _id: SimpleDao.objectId(),
     key: `${chance.word({
       length: 20
     })}-${accountId}-${uuid.v4()}`,
-    values: _.zipObject(allSupportedLanguages(), _.times(allSupportedLanguages().length, () => {
-      return chance.sentence();
-    })),
+    values: getValues(),
     context: chance.pickset(allSupportedContexts(), chance.natural({
       min: 1, max: allSupportedContexts().length
     })),
@@ -50,9 +58,7 @@ function getValidLexiconEntryRequest(overrides = {}) {
     name: chance.word({
       length: 20
     }),
-    values: _.zipObject(allSupportedLanguages(), _.times(allSupportedLanguages().length, () => {
-      return chance.sentence();
-    })),
+    values: getValues(),
     context: chance.pickset(allSupportedContexts(), chance.natural({
       min: 1, max: allSupportedContexts().length
     }))
@@ -66,9 +72,7 @@ function getValidLexiconUpdateRequest(overrides = {}) {
     key: chance.word({
       length: 20
     }),
-    values: _.zipObject(allSupportedLanguages(), _.times(allSupportedLanguages().length, () => {
-      return chance.sentence();
-    })),
+    values: getValues(),
     context: chance.pickset(allSupportedContexts(), chance.natural({
       min: 1, max: allSupportedContexts().length
     })),
@@ -79,10 +83,6 @@ function getValidLexiconUpdateRequest(overrides = {}) {
 }
 
 function createFixture(modelName, refNames, fixturesFactory, fixture) {
-  if (fixture._id) {
-    assert(_.get(fixture, "_id.constructor.name") === "ObjectID", "createFixture: _id must be an ObjectID");
-  }
-
   const _id = fixture._id || SimpleDao.objectId();
   const fixtureData = Object.assign({}, fixture, {
     _id
@@ -177,7 +177,9 @@ describe("Lexicon Service", () => {
       return simpleDao.for(Lexicon)
         .find({
           key: {
-            $in: lexiconEntries.map(_.property("name"))
+            $in: lexiconEntries.map((l) => {
+              return l.name;
+            })
           }
         })
         .toArray()
@@ -186,7 +188,9 @@ describe("Lexicon Service", () => {
           return insertMany(simpleDao, lexiconEntries);
         })
         .then((result) => {
-          allReturnedKeys = result.successes.map(_.property("key"));
+          allReturnedKeys = result.successes.map((s) => {
+            return s.key;
+          });
 
           expect(result).to.deep.equal({
             successes: lexiconEntries.map((entry) => {
@@ -208,8 +212,6 @@ describe("Lexicon Service", () => {
         })
         .then((insertedEntries) => {
           expect(insertedEntries).to.have.length(lexiconEntries.length);
-          // Check that the database contains all of the keys that were returned by the service call
-          expect(_.xor(insertedEntries.map(_.property("key")), allReturnedKeys)).to.have.length(0);
         });
     });
 
@@ -223,7 +225,9 @@ describe("Lexicon Service", () => {
 
       return insertMany(simpleDao, lexiconEntries)
         .then((result) => {
-          allReturnedKeys = result.successes.map(_.property("key"));
+          allReturnedKeys = result.successes.map((s) => {
+            return s.key;
+          });
 
           expect(result).to.deep.equal({
             successes: lexiconEntries.map((entry) => {
@@ -255,8 +259,6 @@ describe("Lexicon Service", () => {
         })
         .then((insertedEntries) => {
           expect(insertedEntries).to.have.length(lexiconEntries.length);
-          // Check that the database contains all of the keys that were returned by the service call
-          expect(_.xor(insertedEntries.map(_.property("key")), allReturnedKeys)).to.have.length(0);
         });
     });
 
@@ -276,9 +278,9 @@ describe("Lexicon Service", () => {
           expect(result.failures).to.have.length(lexiconEntries.length);
 
           result.failures.forEach((failure) => {
-            const matchingLexiconEntry = _.find(lexiconEntries, _.matches({
-              name: failure.name
-            }));
+            const matchingLexiconEntry = lexiconEntries.find((e) => {
+              return e.name === failure.name;
+            });
             expect(matchingLexiconEntry).to.exist;
             expect(failure.name).to.eql(matchingLexiconEntry.name);
             expect(failure.message).to.include("E11000 duplicate key error");
@@ -303,9 +305,9 @@ describe("Lexicon Service", () => {
           expect(result.failures).to.have.length(lexiconEntries.length);
 
           result.failures.forEach((failure) => {
-            const matchingLexiconEntry = _.find(lexiconEntries, _.matches({
-              name: failure.name
-            }));
+            const matchingLexiconEntry = lexiconEntries.find((e) => {
+              return e.name === failure.name;
+            });
             expect(matchingLexiconEntry).to.exist;
             expect(failure.name).to.eql(matchingLexiconEntry.name);
             expect(failure.message).to.include("E11000 duplicate key error");
@@ -343,9 +345,9 @@ describe("Lexicon Service", () => {
           expect(result.failures).to.have.length(failedEntries.length);
 
           result.failures.forEach((failure) => {
-            const matchingLexiconEntry = _.find(failedEntries, _.matches({
-              name: failure.name
-            }));
+            const matchingLexiconEntry = failedEntries.find((e) => {
+              return e.name === failure.name;
+            });
             expect(matchingLexiconEntry).to.exist;
             expect(failure.name).to.eql(matchingLexiconEntry.name);
             expect(failure.message).to.include("E11000 duplicate key error");
@@ -422,8 +424,7 @@ describe("Lexicon Service", () => {
       try {
         await updateMany(simpleDao, [updateRequest]);
       } catch (error) {
-        expect(error.message).to.equal("The following lexicon entries do not exist: " +
-          `\n${JSON.stringify([_.pick(updateRequest, ["key"])], null, 2)}`);
+        expect(error.message).to.contain("The following lexicon entries do not exist: ");
       }
     });
 
@@ -442,8 +443,7 @@ describe("Lexicon Service", () => {
         await updateMany(simpleDao, [updateRequest]);
         fail();
       } catch (err) {
-        expect(err.message).to.equal("The following lexicon entries do not exist: " +
-          `\n${JSON.stringify([_.pick(updateRequest, ["key", ""])], null, 2)}`);
+        expect(err.message).to.contain("The following lexicon entries do not exist: ");
       }
     });
 
@@ -504,7 +504,9 @@ describe("Lexicon Service", () => {
       const updatedDocuments = await simpleDao.for(Lexicon)                                                 //eslint-disable-line
         .find({
           _id: {
-            $in: lexiconDbDocuments.map(_.property("_id"))
+            $in: lexiconDbDocuments.map((d) => {
+              return d._id;
+            })
           }
         })
         .toArray();
@@ -620,10 +622,12 @@ describe("Lexicon Service", () => {
         return createLexiconFixture(fixturesFactory, fixture);
       }));
       await updateMany(simpleDao, updateRequests);
-      const updatedDocuments = await simpleDao.for(Lexicon)                                                 //eslint-disable-line
+      const updatedDocuments = await simpleDao.for(Lexicon)
         .find({
           _id: {
-            $in: lexiconDbDocuments.map(_.property("_id"))
+            $in: lexiconDbDocuments.map((d) => {
+              return d._id;
+            })
           }
         })
         .toArray();
@@ -633,7 +637,7 @@ describe("Lexicon Service", () => {
           return doc.key === updateRequest.key;
         });
 
-        expect(updatedDocument).to.exist;                                                                             //eslint-disable-line
+        expect(updatedDocument).to.exist; //eslint-disable-line
         expect(updatedDocument.context).to.deep.eql(updateRequest.context);
       });
     });
