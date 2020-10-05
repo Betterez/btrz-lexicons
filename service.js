@@ -206,7 +206,7 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
   return _findAll(simpleDao, lexiconEntryIdentifiers);
 }
 
-async function find(simpleDao, key, accountIds = [], context = allSupportedContexts(), lexiconSuffix, accountOnly) {
+async function find(simpleDao, key, accountIds = [], context = allSupportedContexts(), accountOnly) {
   const query = {
     accountId: {
       $in: ["", ...accountIds]
@@ -224,8 +224,7 @@ async function find(simpleDao, key, accountIds = [], context = allSupportedConte
   if (key) {
     query.key = key;
   }
-  const lexicon = Lexicon.loadLexicon(lexiconSuffix);
-  const lexicons = await simpleDao.for(lexicon)
+  const lexicons = await simpleDao.for(Lexicon)
     .find(query)
     .toArray();
   return {
