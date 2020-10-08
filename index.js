@@ -1,6 +1,7 @@
 const {
   allSupportedContexts,
   allSupportedLanguages,
+  createOrUpdateMany,
   find,
   generateLexiconKey,
   insertMany,
@@ -18,6 +19,7 @@ const {
 module.exports = {
   allSupportedContexts,
   allSupportedLanguages,
+  createOrUpdateMany,
   find,
   generateLexiconKey,
   insertMany,

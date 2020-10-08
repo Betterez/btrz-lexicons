@@ -42,6 +42,40 @@ function findKeyFromValue(obj, value) {
   return keys[index];
 }
 
+async function createOrUpdateMany(simpleDao, lexiconEntries) {
+  assert(Array.isArray(lexiconEntries) && lexiconEntries.length > 0,
+    "lexiconEntries must be an array with at least one item");
+
+  lexiconEntries.forEach((entry) => {
+    const requiredKeys = ["key", "values", "context"];
+    const optionalKeys = ["accountId"];
+    const keys = Object.keys(entry);
+    const missingKeys = difference(requiredKeys, keys);
+    const unknownKeys = difference(keys, requiredKeys.concat(optionalKeys));
+
+    assert(missingKeys.length === 0,
+      `lexicon entry with key ${entry.key} is missing the following required keys: ${missingKeys.join(", ")}`);
+    assert(unknownKeys.length === 0,
+      `lexicon entry with key ${entry.key} contains the following unknown keys: ${unknownKeys.join(", ")}`);
+  });
+  const db = await simpleDao.connect();
+  const promises = lexiconEntries.map((entry) => {
+    const query = {
+      key: entry.key
+    };
+    return db.collection(Lexicon.collectionName())
+      .update(
+        query,
+        entry,
+        {
+          upsert: true
+        }
+      );
+  });
+  const results = Promise.allSettled(promises);
+  return results;
+}
+
 async function insertMany(simpleDao, lexiconEntries) {
   lexiconEntries.forEach((entry) => {
     const requiredKeys = ["name", "values", "context"];
@@ -320,6 +354,7 @@ function keyValueLangs(langPreferences) {
 module.exports = {
   allSupportedContexts,
   allSupportedLanguages,
+  createOrUpdateMany,
   find,
   generateLexiconKey,
   insertMany,

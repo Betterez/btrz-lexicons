@@ -14,6 +14,7 @@ const simpleDao = new SimpleDao(config);
 const {
   allSupportedLanguages,
   allSupportedContexts,
+  createOrUpdateMany,
   keyValueLangs,
   langToIso,
   langToName,
@@ -21,7 +22,7 @@ const {
   isoToName,
   updateMany,
   generateLexiconKey
-} = require("../service");
+} = require("../index");
 const accountId = SimpleDao.objectId().toHexString();
 
 const {
@@ -231,7 +232,7 @@ describe("Lexicon", () => {
     });
   });
 
-  describe.only("isoToName", () => {
+  describe("isoToName", () => {
     it("return english by default", () => {
       expect(isoToName()).to.be.eql("english");
     });
@@ -575,7 +576,7 @@ describe("Lexicon", () => {
 
       await createLexiconFixture(fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
-      const [updatedDocument] = await simpleDao.for(Lexicon)                                                //eslint-disable-line
+      const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
           _id: lexiconDbDocument._id
         })
@@ -583,7 +584,7 @@ describe("Lexicon", () => {
 
       expect(updatedDocument.values).to.deep.eql(updateRequest.values);
       expect(updatedDocument.context).to.deep.eql(updateRequest.context);
-      expect(updatedDocument.accountId).to.equal("");                                                                 //eslint-disable-line
+      expect(updatedDocument.accountId).to.equal("");
     });
 
     it("should update the values contained in a single existing lexicon entry", async () => {
@@ -594,7 +595,7 @@ describe("Lexicon", () => {
 
       await createLexiconFixture(fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
-      const [updatedDocument] = await simpleDao.for(Lexicon)                                                //eslint-disable-line
+      const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
           _id: lexiconDbDocument._id
         })
@@ -618,7 +619,7 @@ describe("Lexicon", () => {
         return createLexiconFixture(fixturesFactory, fixture);
       }));
       await updateMany(simpleDao, updateRequests);
-      const updatedDocuments = await simpleDao.for(Lexicon)                                                 //eslint-disable-line
+      const updatedDocuments = await simpleDao.for(Lexicon)
         .find({
           _id: {
             $in: lexiconDbDocuments.map((d) => {
@@ -633,7 +634,7 @@ describe("Lexicon", () => {
           return doc.key === updateRequest.key;
         });
 
-        expect(updatedDocument).to.exist;                                                                             //eslint-disable-line
+        expect(updatedDocument).to.exist;
         expect(updatedDocument.values).to.deep.eql(updateRequest.values);
       });
     });
@@ -652,7 +653,7 @@ describe("Lexicon", () => {
 
       await createLexiconFixture(fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
-      const [updatedDocument] = await simpleDao.for(Lexicon)                                                //eslint-disable-line
+      const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
           _id: lexiconDbDocument._id
         })
@@ -681,7 +682,7 @@ describe("Lexicon", () => {
 
       await createLexiconFixture(fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
-      const [updatedDocument] = await simpleDao.for(Lexicon)                                                //eslint-disable-line
+      const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
           _id: lexiconDbDocument._id
         })
@@ -698,7 +699,7 @@ describe("Lexicon", () => {
 
       await createLexiconFixture(fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
-      const [updatedDocument] = await simpleDao.for(Lexicon)                                                //eslint-disable-line
+      const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
           _id: lexiconDbDocument._id
         })
@@ -715,7 +716,7 @@ describe("Lexicon", () => {
 
       await createLexiconFixture(fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
-      const [updatedDocument] = await simpleDao.for(Lexicon)                                                //eslint-disable-line
+      const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
           _id: lexiconDbDocument._id
         })
@@ -803,6 +804,158 @@ describe("Lexicon", () => {
         .then(([updatedDocument]) => {
           expect(updatedDocument.values).to.deep.eql(lexiconDbDocument.values);
         });
+    });
+  });
+
+  describe("#createOrUpdateMany()", () => {
+    it("should reject if any of the provided lexicon entry updates is missing a \"key\"", async () => {
+      const lexiconUpdateRequests = [getValidLexiconUpdateRequest(), getValidLexiconUpdateRequest()];
+      Reflect.deleteProperty(lexiconUpdateRequests[1], "key");
+
+      try {
+        await createOrUpdateMany(simpleDao, lexiconUpdateRequests);
+        fail();
+      } catch (err) {
+        expect(err.message).to.equal("lexicon entry with key undefined is missing the following required keys: key");
+      }
+    });
+
+    it("should reject if any of the provided lexicon entry updates contains an unknown property", async () => {
+      const lexiconEntries = [getValidLexiconUpdateRequest(), getValidLexiconUpdateRequest({
+        unknownProperty: "someValue"
+      })];
+
+      try {
+        await createOrUpdateMany(simpleDao, lexiconEntries);
+        fail();
+      } catch (err) {
+        expect(err.message).to.equal(`lexicon entry with key ${lexiconEntries[1].key} ` +
+          "contains the following unknown keys: unknownProperty");
+      }
+    });
+
+    it("should reject if provided with a zero-length array of lexicon entry updates", async () => {
+      try {
+        await createOrUpdateMany(simpleDao, []);
+        fail();
+      } catch (err) {
+        expect(err.message).to.equal("lexiconEntries must be an array with at least one item");
+      }
+    });
+
+    it("should insert the values contained in a single existing lexicon entry", async () => {
+      const lexiconDbDocument = getValidLexiconDbDocument();
+      const newKey = chance.guid();
+      const updateRequest = getValidLexiconUpdateRequest({
+        key: newKey
+      });
+
+      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await createOrUpdateMany(simpleDao, [updateRequest]);
+      const [createdDocument] = await simpleDao.for(Lexicon)
+        .find({
+          key: newKey
+        })
+        .toArray();
+      const [oldDocument] = await simpleDao.for(Lexicon)
+        .find({
+          _id: lexiconDbDocument._id
+        })
+        .toArray();
+
+      expect(oldDocument.values).to.deep.eql(lexiconDbDocument.values);
+      expect(updateRequest.values).to.deep.eql(createdDocument.values);
+    });
+
+    it("should insert new documents and update the values contained in multiple existing lexicon entries", async () => {
+      const lexiconDbDocuments = [getValidLexiconDbDocument(), getValidLexiconDbDocument()];
+      const newKey = chance.guid();
+      const updateRequests = [
+        getValidLexiconUpdateRequest({
+          key: lexiconDbDocuments[0].key
+        }),
+        getValidLexiconUpdateRequest({
+          key: newKey
+        }),
+        getValidLexiconUpdateRequest({
+          key: lexiconDbDocuments[1].key
+        })
+      ];
+
+      await Promise.all(lexiconDbDocuments.map((fixture) => {
+        return createLexiconFixture(fixturesFactory, fixture);
+      }));
+      await createOrUpdateMany(simpleDao, updateRequests);
+      const updatedDocuments = await simpleDao.for(Lexicon)
+        .find({
+          key: {
+            $in: updateRequests.map((d) => {
+              return d.key;
+            })
+          }
+        })
+        .toArray();
+
+      updateRequests.forEach((updateRequest) => {
+        const updatedDocument = updatedDocuments.find((doc) => {
+          return doc.key === updateRequest.key;
+        });
+
+        expect(updatedDocument).to.exist;
+        expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+      });
+    });
+
+    it("should update the values contained in a single existing lexicon entry", async () => {
+      const lexiconDbDocument = getValidLexiconDbDocument();
+      const updateRequest = getValidLexiconUpdateRequest({
+        key: lexiconDbDocument.key
+      });
+
+      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await createOrUpdateMany(simpleDao, [updateRequest]);
+      const [updatedDocument] = await simpleDao.for(Lexicon)
+        .find({
+          _id: lexiconDbDocument._id
+        })
+        .toArray();
+
+      expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+    });
+
+    it("should update the values contained in multiple existing lexicon entries", async () => {
+      const lexiconDbDocuments = [getValidLexiconDbDocument(), getValidLexiconDbDocument()];
+      const updateRequests = [
+        getValidLexiconUpdateRequest({
+          key: lexiconDbDocuments[0].key
+        }),
+        getValidLexiconUpdateRequest({
+          key: lexiconDbDocuments[1].key
+        })
+      ];
+
+      await Promise.all(lexiconDbDocuments.map((fixture) => {
+        return createLexiconFixture(fixturesFactory, fixture);
+      }));
+      await createOrUpdateMany(simpleDao, updateRequests);
+      const updatedDocuments = await simpleDao.for(Lexicon)
+        .find({
+          _id: {
+            $in: lexiconDbDocuments.map((d) => {
+              return d._id;
+            })
+          }
+        })
+        .toArray();
+
+      updateRequests.forEach((updateRequest) => {
+        const updatedDocument = updatedDocuments.find((doc) => {
+          return doc.key === updateRequest.key;
+        });
+
+        expect(updatedDocument).to.exist;
+        expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+      });
     });
   });
 });
