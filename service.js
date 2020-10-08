@@ -232,6 +232,60 @@ async function find(simpleDao, key, accountIds = [], context = allSupportedConte
   };
 }
 
+function langToKeyValue(lang) {
+  switch (lang) {
+    case "fr":
+      return {
+        key: "fr-fr",
+        value: "french"
+      };
+    case "nl":
+      return {
+        key: "nl-nl",
+        value: "dutch"
+      };
+    case "de":
+      return {
+        key: "de-de",
+        value: "german"
+      };
+    case "es":
+      return {
+        key: "es-ar",
+        value: "spanish"
+      };
+    default:
+      return {
+        key: "en-us",
+        value: "english"
+      };
+  }
+}
+
+function langToIso(lang) {
+  switch (lang) {
+    case "fr":
+      return "fr-fr";
+    case "nl":
+      return "nl-nl";
+    case "de":
+      return "de-de";
+    case "es":
+      return "es-ar";
+    default:
+      return "en-us";
+  }
+}
+
+function keyValueLangs(langPreferences) {
+  const langs = langPreferences || {};
+  return Object.keys(langs).reduce((acc, k) => {
+    if (langs[k]) {
+      acc.push(langToKeyValue(k));
+    }
+    return acc;
+  }, []);
+}
 
 module.exports = {
   allSupportedContexts,
@@ -239,5 +293,7 @@ module.exports = {
   find,
   generateLexiconKey,
   insertMany,
+  keyValueLangs,
+  langToIso,
   updateMany
 };

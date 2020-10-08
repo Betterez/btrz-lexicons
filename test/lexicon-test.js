@@ -1,4 +1,3 @@
-const _ = require("lodash");
 const assert = require("assert");
 const {
   expect
@@ -15,8 +14,11 @@ const simpleDao = new SimpleDao(config);
 const {
   allSupportedLanguages,
   allSupportedContexts,
+  keyValueLangs,
+  langToIso,
   insertMany,
-  updateMany
+  updateMany,
+  generateLexiconKey
 } = require("../service");
 const accountId = SimpleDao.objectId().toHexString();
 
@@ -97,7 +99,15 @@ function createFixture(modelName, refNames, fixturesFactory, fixture) {
     });
 }
 
-const createLexiconFixture = _.partial(createFixture, Lexicon.collectionName(), []);
+
+function createLexiconFixture(fixturesFactory, data) {
+  return createFixture(
+    Lexicon.collectionName(),
+    ["SeatFeeResponseLexiconKeys", "SeatfeesRules"],
+    fixturesFactory,
+    data
+  );
+}
 
 const {
   MongoFactory
@@ -117,7 +127,7 @@ function fail() {
 }
 
 
-describe("Lexicon Service", () => {
+describe("Lexicon", () => {
   beforeEach(() => {
     return fixturesFactory.connection.then((db) => {
       // This index should match the index that exists in the production database
@@ -133,6 +143,74 @@ describe("Lexicon Service", () => {
   afterEach(() => {
     return fixturesFactory.clearAll().then(() => {
       return simpleDao.dropCollection(lexiconCollectionName);
+    });
+  });
+
+  describe("allSupportedLanguages", () => {
+    it("should return all the supported languages", () => {
+      const result = allSupportedLanguages();
+      expect(result.length).to.be.eql(5);
+      expect(result).to.contain("en-us");
+      expect(result).to.contain("fr-fr");
+      expect(result).to.contain("nl-nl");
+      expect(result).to.contain("de-de");
+      expect(result).to.contain("es-ar");
+      expect(result).not.to.contain("it-it");
+    });
+  });
+
+  describe("allSupportedContexts", () => {
+    it("should return all the supported context", () => {
+      const result = allSupportedContexts();
+      expect(result.length).to.be.eql(4);
+      expect(result).to.contain("app");
+      expect(result).to.contain("websales");
+      expect(result).to.contain("vue");
+      expect(result).to.contain("calendarwebsales");
+      expect(result).not.to.contain("mobile");
+    });
+  });
+
+  describe("generateLexiconKey", () => {
+    it("should return a properly formatted key", () => {
+      const key = generateLexiconKey("123", "something", "another");
+      expect(key).to.contain("-");
+      expect(key).to.contain("123");
+      expect(key).to.contain("something");
+      expect(key).to.contain("another");
+      expect(key.split("-").length).to.be.eql(8);
+    });
+  });
+
+  describe("keyValueLangs", () => {
+    it("should return an array with keys for the iso lang and value as a string for values that are true", () => {
+      const result = keyValueLangs({
+        en: true, fr: true, es: false, nl: true
+      });
+      expect(result.length).to.be.eql(3);
+      expect(result[0]).to.eql({
+        key: "en-us", value: "english"
+      });
+      expect(result[1]).to.eql({
+        key: "fr-fr", value: "french"
+      });
+      expect(result[2]).to.eql({
+        key: "nl-nl", value: "dutch"
+      });
+    });
+  });
+
+  describe("langToIso", () => {
+    it("should map two letters lang to the iso used in lexicons", () => {
+      expect(langToIso("en")).to.be.eql("en-us");
+      expect(langToIso("fr")).to.be.eql("fr-fr");
+      expect(langToIso("nl")).to.be.eql("nl-nl");
+      expect(langToIso("de")).to.be.eql("de-de");
+      expect(langToIso("es")).to.be.eql("es-ar");
+    });
+
+    it("should default to english", () => {
+      expect(langToIso()).to.be.eql("en-us");
     });
   });
 
@@ -163,11 +241,13 @@ describe("Lexicon Service", () => {
     });
 
     it("should correctly save entries that don't specify an 'accountId'", () => {
-      const lexiconEntries = _.times(chance.natural({
+      const iterations = chance.natural({
         min: 1, max: 10
-      }), () => {
-        return getValidLexiconEntryRequest();
       });
+      const lexiconEntries = [];
+      for (let i = 0; i < iterations; i++) {
+        lexiconEntries.push(getValidLexiconEntryRequest());
+      }
       let allReturnedKeys = null;
 
       lexiconEntries.forEach((entry) => {
@@ -216,11 +296,14 @@ describe("Lexicon Service", () => {
     });
 
     it("should correctly save entries that do specify an 'accountId'", () => {
-      const lexiconEntries = _.times(chance.natural({
+      const iterations = chance.natural({
         min: 1, max: 10
-      }), () => {
-        return getValidLexiconEntryRequest();
       });
+      const lexiconEntries = [];
+      for (let i = 0; i < iterations; i++) {
+        lexiconEntries.push(getValidLexiconEntryRequest());
+      }
+
       let allReturnedKeys = null;
 
       return insertMany(simpleDao, lexiconEntries)
@@ -319,12 +402,14 @@ describe("Lexicon Service", () => {
     // eslint-disable-next-line max-len
     it("should indicate which lexicon entries were inserted and which entries were not inserted when only some entries are successfully inserted", () => {
       const failedEntries = [getValidLexiconEntryRequest(), getValidLexiconEntryRequest()];
-      const lexiconEntries1 = _.times(4, () => {
-        return getValidLexiconEntryRequest();
-      }).concat(failedEntries);
-      const lexiconEntries2 = _.times(4, () => {
-        return getValidLexiconEntryRequest();
-      }).concat(failedEntries);
+      let lexiconEntries1 = [];
+      let lexiconEntries2 = [];
+      for (let i = 0; i < 4; i++) {
+        lexiconEntries1.push(getValidLexiconEntryRequest());
+        lexiconEntries2.push(getValidLexiconEntryRequest());
+      }
+      lexiconEntries1 = lexiconEntries1.concat(failedEntries);
+      lexiconEntries2 = lexiconEntries2.concat(failedEntries);
 
       [...lexiconEntries1, ...lexiconEntries2].forEach((entry) => {
         Reflect.deleteProperty(entry, "accountId");
