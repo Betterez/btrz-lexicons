@@ -16,7 +16,9 @@ const {
   allSupportedContexts,
   keyValueLangs,
   langToIso,
+  langToName,
   insertMany,
+  isoToName,
   updateMany,
   generateLexiconKey
 } = require("../service");
@@ -211,6 +213,36 @@ describe("Lexicon", () => {
 
     it("should default to english", () => {
       expect(langToIso()).to.be.eql("en-us");
+    });
+  });
+
+  describe("langToName", () => {
+    it("return english by default", () => {
+      expect(langToName()).to.be.eql("english");
+    });
+
+    it("return the proper name", () => {
+      expect(langToName("en")).to.be.eql("english");
+      expect(langToName("fr")).to.be.eql("french");
+      expect(langToName("de")).to.be.eql("german");
+      expect(langToName("nl")).to.be.eql("dutch");
+      expect(langToName("es")).to.be.eql("spanish");
+      expect(langToName("kl")).to.be.eql("english");
+    });
+  });
+
+  describe.only("isoToName", () => {
+    it("return english by default", () => {
+      expect(isoToName()).to.be.eql("english");
+    });
+
+    it("return the proper name", () => {
+      expect(isoToName("en-us")).to.be.eql("english");
+      expect(isoToName("fr-fr")).to.be.eql("french");
+      expect(isoToName("de-de")).to.be.eql("german");
+      expect(isoToName("nl-nl")).to.be.eql("dutch");
+      expect(isoToName("es-ar")).to.be.eql("spanish");
+      expect(isoToName("kl")).to.be.eql("english");
     });
   });
 

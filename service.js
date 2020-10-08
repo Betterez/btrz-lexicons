@@ -277,6 +277,36 @@ function langToIso(lang) {
   }
 }
 
+function langToName(lang) {
+  switch (lang) {
+    case "fr":
+      return "french";
+    case "nl":
+      return "dutch";
+    case "de":
+      return "german";
+    case "es":
+      return "spanish";
+    default:
+      return "english";
+  }
+}
+
+function isoToName(iso) {
+  switch (iso) {
+    case "fr-fr":
+      return "french";
+    case "nl-nl":
+      return "dutch";
+    case "de-de":
+      return "german";
+    case "es-ar":
+      return "spanish";
+    default:
+      return "english";
+  }
+}
+
 function keyValueLangs(langPreferences) {
   const langs = langPreferences || {};
   return Object.keys(langs).reduce((acc, k) => {
@@ -293,7 +323,9 @@ module.exports = {
   find,
   generateLexiconKey,
   insertMany,
+  isoToName,
   keyValueLangs,
   langToIso,
+  langToName,
   updateMany
 };

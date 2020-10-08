@@ -4,8 +4,10 @@ const {
   find,
   generateLexiconKey,
   insertMany,
+  isoToName,
   keyValueLangs,
   langToIso,
+  langToName,
   updateMany
 } = require("./service");
 
@@ -19,8 +21,10 @@ module.exports = {
   find,
   generateLexiconKey,
   insertMany,
+  isoToName,
   keyValueLangs,
   langToIso,
+  langToName,
   updateMany,
   Lexicon
 };
