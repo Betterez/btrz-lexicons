@@ -26,10 +26,10 @@ const {
 const accountId = SimpleDao.objectId().toHexString();
 
 const {
-  Lexicon
+  Lexicon,
+  LexiconFixture
 } = require("../models");
 const lexiconCollectionName = Lexicon.collectionName();
-const uuid = require("uuid");
 
 function getValues() {
   const values = allSupportedLanguages().reduce((obj, lan) => {
@@ -39,22 +39,6 @@ function getValues() {
   }, {});
 
   return values;
-}
-
-function getValidLexiconDbDocument(overrides = {}) {
-  const validLexiconDbDocument = {
-    _id: SimpleDao.objectId(),
-    key: `${chance.word({
-      length: 20
-    })}-${accountId}-${uuid.v4()}`,
-    values: getValues(),
-    context: chance.pickset(allSupportedContexts(), chance.natural({
-      min: 1, max: allSupportedContexts().length
-    })),
-    accountId
-  };
-
-  return Object.assign(validLexiconDbDocument, overrides);
 }
 
 function getValidLexiconEntryRequest(overrides = {}) {
@@ -87,34 +71,9 @@ function getValidLexiconUpdateRequest(overrides = {}) {
   return Object.assign(validLexiconUpdate, overrides);
 }
 
-function createFixture(modelName, refNames, fixturesFactory, fixture) {
-  const _id = fixture._id || SimpleDao.objectId();
-  const fixtureData = Object.assign({}, fixture, {
-    _id
-  });
-  const refs = refNames.map((name) => {
-    return fixturesFactory.fixtures(name);
-  });
-
-  return fixturesFactory.createList(modelName, 1, [fixtureData], refs)
-    .then(() => {
-      return _id.toString();
-    });
-}
-
-
-function createLexiconFixture(fixturesFactory, data) {
-  return createFixture(
-    Lexicon.collectionName(),
-    ["SeatFeeResponseLexiconKeys", "SeatfeesRules"],
-    fixturesFactory,
-    data
-  );
-}
-
 const {
-  MongoFactory
-  // eslint-disable-next-line import/no-extraneous-dependencies
+  MongoFactory,
+  createFixture
 } = require("btrz-mongo-factory");
 const fixturesFactoryOptions = {
   "loadFromModels": true,
@@ -534,10 +493,12 @@ describe("Lexicon", () => {
     });
 
     it("should reject with a meaningful ValidationError if any lexicon entry update specifies a non-existent lexicon key", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest();
-
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
 
       try {
         await updateMany(simpleDao, [updateRequest]);
@@ -549,14 +510,15 @@ describe("Lexicon", () => {
     // eslint-disable-next-line max-len
     it("should reject with a meaningful ValidationError if any lexicon entry update specifies a valid lexicon key but an incorrect accountId", async () => {
       const otherAccountId = chance.hash();
-      const lexiconDbDocument = getValidLexiconDbDocument({
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
         accountId: otherAccountId
       });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key
       });
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       try {
         await updateMany(simpleDao, [updateRequest]);
         fail();
@@ -566,7 +528,8 @@ describe("Lexicon", () => {
     });
 
     it("should update a lexicon entry in the global lexicon (no accountId specified)", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument({
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
         accountId: ""
       });
       const updateRequest = getValidLexiconUpdateRequest({
@@ -574,7 +537,7 @@ describe("Lexicon", () => {
       });
       Reflect.deleteProperty(updateRequest, "accountId");
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -588,12 +551,15 @@ describe("Lexicon", () => {
     });
 
     it("should update the values contained in a single existing lexicon entry", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key
       });
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -605,7 +571,16 @@ describe("Lexicon", () => {
     });
 
     it("should update the values contained in multiple existing lexicon entries", async () => {
-      const lexiconDbDocuments = [getValidLexiconDbDocument(), getValidLexiconDbDocument()];
+      const lexiconDbDocuments = [
+        LexiconFixture.getLexiconFixtureMock(chance, {
+          _id: SimpleDao.objectId(),
+          accountId
+        }),
+        LexiconFixture.getLexiconFixtureMock(chance, {
+          _id: SimpleDao.objectId(),
+          accountId
+        })
+      ];
       const updateRequests = [
         getValidLexiconUpdateRequest({
           key: lexiconDbDocuments[0].key
@@ -616,7 +591,7 @@ describe("Lexicon", () => {
       ];
 
       await Promise.all(lexiconDbDocuments.map((fixture) => {
-        return createLexiconFixture(fixturesFactory, fixture);
+        return LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, fixture);
       }));
       await updateMany(simpleDao, updateRequests);
       const updatedDocuments = await simpleDao.for(Lexicon)
@@ -640,7 +615,10 @@ describe("Lexicon", () => {
     });
 
     it("should only update the values for the languages specified in the update object", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key,
         values: {
@@ -651,7 +629,7 @@ describe("Lexicon", () => {
       assert(Object.keys(lexiconDbDocument.values).length > 0,
         "Test is invalid if there is less than 2 values in the existing lexicon entry");
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -665,10 +643,12 @@ describe("Lexicon", () => {
     it("should add a translation for a new language if the existing lexicon entry is missing that language", async () => {
       const existingLanguageIsoCode = allSupportedLanguages()[0];
       const newLanguageIsoCode = allSupportedLanguages()[1];
-      const lexiconDbDocument = getValidLexiconDbDocument({
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
         values: {
           [existingLanguageIsoCode]: chance.sentence()
-        }
+        },
+        accountId
       });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key,
@@ -680,7 +660,7 @@ describe("Lexicon", () => {
       assert(existingLanguageIsoCode !== newLanguageIsoCode, "Test is invalid if the existing and new languages are the same");
       assert(existingLanguageIsoCode && newLanguageIsoCode, "Test is invalid if one of the language codes is missing");
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -692,12 +672,15 @@ describe("Lexicon", () => {
     });
 
     it("should not update the values of a lexicon entry if the update object does not specify new values", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key, values: undefined
       });
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -709,12 +692,15 @@ describe("Lexicon", () => {
     });
 
     it("should update the context of a single existing lexicon entry", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key
       });
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await updateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -726,7 +712,13 @@ describe("Lexicon", () => {
     });
 
     it("should update the context of multiple existing lexicon entries", async () => {
-      const lexiconDbDocuments = [getValidLexiconDbDocument(), getValidLexiconDbDocument()];
+      const lexiconDbDocuments = [LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      }), LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      })];
       const updateRequests = [
         getValidLexiconUpdateRequest({
           key: lexiconDbDocuments[0].key
@@ -737,7 +729,7 @@ describe("Lexicon", () => {
       ];
 
       await Promise.all(lexiconDbDocuments.map((fixture) => {
-        return createLexiconFixture(fixturesFactory, fixture);
+        return LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, fixture);
       }));
       await updateMany(simpleDao, updateRequests);
       const updatedDocuments = await simpleDao.for(Lexicon)
@@ -761,12 +753,15 @@ describe("Lexicon", () => {
     });
 
     it("should not update the context of a lexicon entry if the update object does not specify new context", () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key, context: undefined
       });
 
-      return createLexiconFixture(fixturesFactory, lexiconDbDocument)
+      return LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument)
         .then(() => {
           return updateMany(simpleDao, [updateRequest]);
         })
@@ -783,14 +778,17 @@ describe("Lexicon", () => {
     });
 
     it("should not reject when the update sets properties to their pre-existing value (no properties change)", () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key,
         values: lexiconDbDocument.values,
         context: lexiconDbDocument.context
       });
 
-      return createLexiconFixture(fixturesFactory, lexiconDbDocument)
+      return LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument)
         .then(() => {
           return updateMany(simpleDao, [updateRequest]);
         })
@@ -844,13 +842,16 @@ describe("Lexicon", () => {
     });
 
     it("should insert the values contained in a single existing lexicon entry", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const newKey = chance.guid();
       const updateRequest = getValidLexiconUpdateRequest({
         key: newKey
       });
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await createOrUpdateMany(simpleDao, [updateRequest]);
       const [createdDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -868,7 +869,11 @@ describe("Lexicon", () => {
     });
 
     it("should insert new documents and update the values contained in multiple existing lexicon entries", async () => {
-      const lexiconDbDocuments = [getValidLexiconDbDocument(), getValidLexiconDbDocument()];
+      const lexiconDbDocuments = [LexiconFixture.getLexiconFixtureMock(chance, {
+        accountId
+      }), LexiconFixture.getLexiconFixtureMock(chance, {
+        accountId
+      })];
       const newKey = chance.guid();
       const updateRequests = [
         getValidLexiconUpdateRequest({
@@ -883,7 +888,7 @@ describe("Lexicon", () => {
       ];
 
       await Promise.all(lexiconDbDocuments.map((fixture) => {
-        return createLexiconFixture(fixturesFactory, fixture);
+        return LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, fixture);
       }));
       await createOrUpdateMany(simpleDao, updateRequests);
       const updatedDocuments = await simpleDao.for(Lexicon)
@@ -907,12 +912,15 @@ describe("Lexicon", () => {
     });
 
     it("should update the values contained in a single existing lexicon entry", async () => {
-      const lexiconDbDocument = getValidLexiconDbDocument();
+      const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      });
       const updateRequest = getValidLexiconUpdateRequest({
         key: lexiconDbDocument.key
       });
 
-      await createLexiconFixture(fixturesFactory, lexiconDbDocument);
+      await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
       await createOrUpdateMany(simpleDao, [updateRequest]);
       const [updatedDocument] = await simpleDao.for(Lexicon)
         .find({
@@ -924,7 +932,13 @@ describe("Lexicon", () => {
     });
 
     it("should update the values contained in multiple existing lexicon entries", async () => {
-      const lexiconDbDocuments = [getValidLexiconDbDocument(), getValidLexiconDbDocument()];
+      const lexiconDbDocuments = [LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      }), LexiconFixture.getLexiconFixtureMock(chance, {
+        _id: SimpleDao.objectId(),
+        accountId
+      })];
       const updateRequests = [
         getValidLexiconUpdateRequest({
           key: lexiconDbDocuments[0].key
@@ -935,7 +949,7 @@ describe("Lexicon", () => {
       ];
 
       await Promise.all(lexiconDbDocuments.map((fixture) => {
-        return createLexiconFixture(fixturesFactory, fixture);
+        return LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, fixture);
       }));
       await createOrUpdateMany(simpleDao, updateRequests);
       const updatedDocuments = await simpleDao.for(Lexicon)

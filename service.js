@@ -1,24 +1,13 @@
 const assert = require("assert");
 const uuid = require("uuid");
 const {
+  allSupportedContexts,
+  allSupportedLanguages,
   Lexicon
 } = require("./models");
 
 function generateLexiconKey(accountId, modelName, field) {
   return `${modelName}-${field}-${accountId}-${uuid.v4()}`;
-}
-
-function allSupportedContexts() {
-  return [
-    "app",
-    "websales",
-    "vue",
-    "calendarwebsales"
-  ];
-}
-
-function allSupportedLanguages() {
-  return ["en-us", "fr-fr", "de-de", "nl-nl", "es-ar"];
 }
 
 function _findAll(simpleDao, propertiesToMatch) {
