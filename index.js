@@ -13,7 +13,8 @@ const {
 } = require("./service");
 
 const {
-  Lexicon
+  Lexicon,
+  LexiconFixture
 } = require("./models");
 
 module.exports = {
@@ -28,5 +29,6 @@ module.exports = {
   langToIso,
   langToName,
   updateMany,
-  Lexicon
+  Lexicon,
+  LexiconFixture
 };
