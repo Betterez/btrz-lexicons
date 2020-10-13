@@ -50,7 +50,8 @@ async function createOrUpdateMany(simpleDao, lexiconEntries) {
   const db = await simpleDao.connect();
   const promises = lexiconEntries.map((entry) => {
     const query = {
-      key: entry.key
+      key: entry.key,
+      accountId: entry.accountId
     };
     return db.collection(Lexicon.collectionName())
       .update(
