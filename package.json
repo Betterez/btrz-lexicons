@@ -26,8 +26,8 @@
   },
   "homepage": "https://github.com/Betterez/btrz-lexicons#readme",
   "devDependencies": {
-    "btrz-mongo-factory": "^3.2.0",
-    "btrz-simple-dao": "^4.0.2",
+    "btrz-mongo-factory": "^3.3.0",
+    "btrz-simple-dao": "^4.1.0",
     "chai": "^4.2.0",
     "chance": "^1.1.7",
     "eslint": "^4.19.1 || ^5.3.0",
