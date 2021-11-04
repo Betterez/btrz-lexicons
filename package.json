@@ -1,6 +1,6 @@
 {
   "name": "btrz-lexicons",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A package to manage lexicons in a Mongo DB",
   "main": "index.js",
   "scripts": {
