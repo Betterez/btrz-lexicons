@@ -31,6 +31,20 @@ function findKeyFromValue(obj, value) {
   return keys[index];
 }
 
+function checkInvalidEntries(lexiconEntries) {
+  const invalidEntries = lexiconEntries.filter((entry) => {
+    return entry.key && entry.accountId && entry.accountId.length > 0 && !entry.key.split("-").find((part) => {
+      return entry.accountId === part;
+    });
+  });
+
+  if (invalidEntries.length > 0) {
+    throw new Error(`Invalid lexicon entries: ${invalidEntries.map((entry) => {
+      return `${entry.key}-${entry.accountId}`;
+    }).join(", ")}`);
+  }
+}
+
 async function createOrUpdateMany(simpleDao, lexiconEntries) {
   assert(Array.isArray(lexiconEntries) && lexiconEntries.length > 0,
     "lexiconEntries must be an array with at least one item");
@@ -47,6 +61,9 @@ async function createOrUpdateMany(simpleDao, lexiconEntries) {
     assert(unknownKeys.length === 0,
       `lexicon entry with key ${entry.key} contains the following unknown keys: ${unknownKeys.join(", ")}`);
   });
+
+  checkInvalidEntries(lexiconEntries);
+
   const db = await simpleDao.connect();
   const promises = lexiconEntries.map((entry) => {
     const query = {
@@ -183,6 +200,9 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
       accountId: update.accountId
     };
   });
+
+  checkInvalidEntries(lexiconEntryIdentifiers);
+
   const findExistingLexiconEntries = _findAll(simpleDao, lexiconEntryIdentifiers);
   const getDbConnection = simpleDao.connect();
   const [existingLexiconEntries, db] = await Promise.all([findExistingLexiconEntries, getDbConnection]);

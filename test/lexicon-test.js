@@ -492,12 +492,26 @@ describe("Lexicon", () => {
       }
     });
 
+    it("should reject if provided with accountId and a key without the format: {key}-{accountId}", async () => {
+      const updateEntries = [getValidLexiconUpdateRequest({
+        key: chance.word()
+      })];
+      try {
+        await updateMany(simpleDao, updateEntries);
+        fail();
+      } catch (err) {
+        expect(err.message).to.equal(`Invalid lexicon entries: ${updateEntries[0].key}-${accountId}`);
+      }
+    });
+
     it("should reject with a meaningful ValidationError if any lexicon entry update specifies a non-existent lexicon key", async () => {
       const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
         _id: SimpleDao.objectId(),
         accountId
       });
-      const updateRequest = getValidLexiconUpdateRequest();
+      const updateRequest = getValidLexiconUpdateRequest({
+        key: `${chance.word()}-${accountId}`
+      });
       await LexiconFixture.create(createFixture, SimpleDao, fixturesFactory, lexiconDbDocument);
 
       try {
@@ -523,7 +537,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, [updateRequest]);
         fail();
       } catch (err) {
-        expect(err.message).to.contain("The following lexicon entries do not exist: ");
+        expect(err.message).to.contain("Invalid lexicon entries: ");
       }
     });
 
@@ -841,12 +855,24 @@ describe("Lexicon", () => {
       }
     });
 
+    it("should reject if provided with accountId and a key without the format: {key}-{accountId}", async () => {
+      const updateEntries = [getValidLexiconUpdateRequest({
+        key: chance.word()
+      })];
+      try {
+        await createOrUpdateMany(simpleDao, updateEntries);
+        fail();
+      } catch (err) {
+        expect(err.message).to.equal(`Invalid lexicon entries: ${updateEntries[0].key}-${accountId}`);
+      }
+    });
+
     it("should insert the values contained in a single existing lexicon entry", async () => {
       const lexiconDbDocument = LexiconFixture.getLexiconFixtureMock(chance, {
         _id: SimpleDao.objectId(),
         accountId
       });
-      const newKey = chance.guid();
+      const newKey = `${chance.guid()}-${accountId}`;
       const updateRequest = getValidLexiconUpdateRequest({
         key: newKey
       });
@@ -880,7 +906,7 @@ describe("Lexicon", () => {
           key: lexiconDbDocuments[0].key
         }),
         getValidLexiconUpdateRequest({
-          key: newKey
+          key: `${newKey}-${accountId}`
         }),
         getValidLexiconUpdateRequest({
           key: lexiconDbDocuments[1].key

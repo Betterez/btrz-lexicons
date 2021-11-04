@@ -120,6 +120,9 @@ class LexiconFixture {
 
     // this line use the overrides to provide specific values
     Object.assign(model, overrides);
+    if (overrides.accountId && !overrides.key) {
+      model.key = `${model.key}-${overrides.accountId}`;
+    }
     return model;
   }
 
