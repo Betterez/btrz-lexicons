@@ -500,7 +500,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, updateEntries);
         fail();
       } catch (err) {
-        expect(err.message).to.equal(`Invalid lexicon entries: ${updateEntries[0].key}-${accountId}`);
+        expect(err.message).to.equal(`Incomplete lexicon keys: ${updateEntries[0].key}`);
       }
     });
 
@@ -537,7 +537,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, [updateRequest]);
         fail();
       } catch (err) {
-        expect(err.message).to.contain("Invalid lexicon entries: ");
+        expect(err.message).to.contain("Incomplete lexicon keys: ");
       }
     });
 
@@ -863,7 +863,7 @@ describe("Lexicon", () => {
         await createOrUpdateMany(simpleDao, updateEntries);
         fail();
       } catch (err) {
-        expect(err.message).to.equal(`Invalid lexicon entries: ${updateEntries[0].key}-${accountId}`);
+        expect(err.message).to.equal(`Incomplete lexicon keys: ${updateEntries[0].key}`);
       }
     });
 

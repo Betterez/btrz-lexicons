@@ -39,8 +39,8 @@ function checkInvalidEntries(lexiconEntries) {
   });
 
   if (invalidEntries.length > 0) {
-    throw new Error(`Invalid lexicon entries: ${invalidEntries.map((entry) => {
-      return `${entry.key}-${entry.accountId}`;
+    throw new Error(`Incomplete lexicon keys: ${invalidEntries.map((entry) => {
+      return entry.key;
     }).join(", ")}`);
   }
 }
