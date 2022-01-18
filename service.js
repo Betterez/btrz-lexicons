@@ -250,7 +250,18 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
   return _findAll(simpleDao, lexiconEntryIdentifiers);
 }
 
-async function find(simpleDao, key, accountIds = [], context = allSupportedContexts(), accountOnly) {
+function filterLexiconValuesByLanguage(values, languages) {
+  let result = {};
+  languages.forEach((language) => {
+    if (values[language]) {
+      result = Object.assign(result, {[language]: values[language]});
+    }
+  });
+  return result;
+}
+
+// eslint-disable-next-line max-params
+async function find(simpleDao, key, accountIds = [], context = allSupportedContexts(), accountOnly, keys, language, languages) {
   const query = {
     accountId: {
       $in: ["", ...accountIds]
@@ -267,10 +278,37 @@ async function find(simpleDao, key, accountIds = [], context = allSupportedConte
   }
   if (key) {
     query.key = key;
+  } else if (keys) {
+    query.key = {
+      $in: keys
+    };
   }
-  const lexicons = await simpleDao.for(Lexicon)
+
+  let lexicons = await simpleDao.for(Lexicon)
     .find(query)
     .toArray();
+
+  let langs = [];
+  if (language) {
+    langs = [language];
+  }
+  if (languages) { 
+    langs = languages;
+  }
+  langs = langs.filter((lang) => {
+    return allSupportedLanguages().includes(lang);
+  });
+  if (langs.length > 0) {
+    lexicons = lexicons.map((lex) => {
+      return {_id: lex._id,
+        key: lex.key,
+        context: lex.context,
+        accountId: lex.accountId,
+        values: filterLexiconValuesByLanguage(lex.values, langs)
+      };
+    });
+  }
+
   return {
     lexicons
   };
