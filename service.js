@@ -253,7 +253,7 @@ async function updateMany(simpleDao, lexiconEntryUpdates) {
 function filterLexiconValuesByLanguage(values, languages) {
   let result = {};
   languages.forEach((language) => {
-    if (values[language]) {
+    if (values[language] !== undefined) {
       result = Object.assign(result, {[language]: values[language]});
     }
   });
@@ -300,12 +300,7 @@ async function find(simpleDao, key, accountIds = [], context = allSupportedConte
   });
   if (langs.length > 0) {
     lexicons = lexicons.map((lex) => {
-      return {_id: lex._id,
-        key: lex.key,
-        context: lex.context,
-        accountId: lex.accountId,
-        values: filterLexiconValuesByLanguage(lex.values, langs)
-      };
+      return Object.assign(lex, {values: filterLexiconValuesByLanguage(lex.values, langs)});
     });
   }
 
