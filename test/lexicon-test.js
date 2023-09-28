@@ -21,7 +21,11 @@ const {
   insertMany,
   isoToName,
   updateMany,
-  generateLexiconKey
+  generateLexiconKey,
+  getLanguagesISOCodeMap,
+  getLanguagesISOEmptyObject,
+  getLanguagesISONameMap
+
 } = require("../index");
 const accountId = SimpleDao.objectId().toHexString();
 
@@ -111,12 +115,13 @@ describe("Lexicon", () => {
   describe("allSupportedLanguages", () => {
     it("should return all the supported languages", () => {
       const result = allSupportedLanguages();
-      expect(result.length).to.be.eql(5);
+      expect(result.length).to.be.eql(6);
       expect(result).to.contain("en-us");
       expect(result).to.contain("fr-fr");
       expect(result).to.contain("nl-nl");
       expect(result).to.contain("de-de");
       expect(result).to.contain("es-ar");
+      expect(result).to.contain("fr-ca");
       expect(result).not.to.contain("it-it");
     });
   });
@@ -147,9 +152,9 @@ describe("Lexicon", () => {
   describe("keyValueLangs", () => {
     it("should return an array with keys for the iso lang and value as a string for values that are true", () => {
       const result = keyValueLangs({
-        en: true, fr: true, es: false, nl: true
+        en: true, fr: true, es: false, nl: true, frca: true
       });
-      expect(result.length).to.be.eql(3);
+      expect(result.length).to.be.eql(4);
       expect(result[0]).to.eql({
         key: "en-us", value: "english"
       });
@@ -158,6 +163,9 @@ describe("Lexicon", () => {
       });
       expect(result[2]).to.eql({
         key: "nl-nl", value: "dutch"
+      });
+      expect(result[3]).to.eql({
+        key: "fr-ca", value: "frenchCanada"
       });
     });
   });
@@ -169,6 +177,7 @@ describe("Lexicon", () => {
       expect(langToIso("nl")).to.be.eql("nl-nl");
       expect(langToIso("de")).to.be.eql("de-de");
       expect(langToIso("es")).to.be.eql("es-ar");
+      expect(langToIso("frca")).to.be.eql("fr-ca");
     });
 
     it("should default to english", () => {
@@ -187,6 +196,7 @@ describe("Lexicon", () => {
       expect(langToName("de")).to.be.eql("german");
       expect(langToName("nl")).to.be.eql("dutch");
       expect(langToName("es")).to.be.eql("spanish");
+      expect(langToName("frca")).to.be.eql("frenchCanada");
       expect(langToName("kl")).to.be.eql("english");
     });
   });
@@ -202,6 +212,7 @@ describe("Lexicon", () => {
       expect(isoToName("de-de")).to.be.eql("german");
       expect(isoToName("nl-nl")).to.be.eql("dutch");
       expect(isoToName("es-ar")).to.be.eql("spanish");
+      expect(isoToName("fr-ca")).to.be.eql("frenchCanada");
       expect(isoToName("kl")).to.be.eql("english");
     });
   });
@@ -996,6 +1007,51 @@ describe("Lexicon", () => {
         expect(updatedDocument).to.exist;
         expect(updatedDocument.values).to.deep.eql(updateRequest.values);
       });
+    });
+  });
+
+  describe("getLanguagesISOCodeMap", () => {
+    it("should return an object with languages iso as keys and code as values", () => {
+      const languages = allSupportedLanguages();
+      const result = getLanguagesISOCodeMap();
+
+      expect(Object.keys(result).length).to.be.eql(languages.length);
+      expect(languages[0]).to.be.eql(result.en);
+      expect(languages[1]).to.be.eql(result.fr);
+      expect(languages[2]).to.be.eql(result.de);
+      expect(languages[3]).to.be.eql(result.nl);
+      expect(languages[4]).to.be.eql(result.es);
+      expect(languages[5]).to.be.eql(result.frca);
+    });
+  });
+
+  describe("getLanguagesISOEmptyObject", () => {
+    it("should return an object with languages iso as keys and empty strings as values", () => {
+      const languages = allSupportedLanguages();
+      const result = getLanguagesISOEmptyObject();
+
+      expect(Object.keys(result).length).to.be.eql(languages.length);
+      expect(languages[0]).to.be.eql(Object.keys(result)[0]);
+      expect(languages[1]).to.be.eql(Object.keys(result)[1]);
+      expect(languages[2]).to.be.eql(Object.keys(result)[2]);
+      expect(languages[3]).to.be.eql(Object.keys(result)[3]);
+      expect(languages[4]).to.be.eql(Object.keys(result)[4]);
+      expect(languages[5]).to.be.eql(Object.keys(result)[5]);
+    });
+  });
+
+  describe("getLanguagesISONameMap", () => {
+    it("should return an object with languages iso as keys and name as values", () => {
+      const languages = allSupportedLanguages();
+      const result = getLanguagesISONameMap();
+
+      expect(Object.keys(result).length).to.be.eql(languages.length);
+      expect(result[languages[0]]).to.be.eql("english");
+      expect(result[languages[1]]).to.be.eql("french");
+      expect(result[languages[2]]).to.be.eql("german");
+      expect(result[languages[3]]).to.be.eql("dutch");
+      expect(result[languages[4]]).to.be.eql("spanish");
+      expect(result[languages[5]]).to.be.eql("frenchCanada");
     });
   });
 });

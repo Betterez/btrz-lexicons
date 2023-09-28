@@ -170,7 +170,6 @@ async function insertMany(simpleDao, lexiconEntries) {
   };
 }
 
-
 async function updateMany(simpleDao, lexiconEntryUpdates) {
   assert(Array.isArray(lexiconEntryUpdates) && lexiconEntryUpdates.length > 0,
     "lexiconEntryUpdates must be an array with at least one item");
@@ -311,6 +310,11 @@ async function find(simpleDao, key, accountIds = [], context = allSupportedConte
 
 function langToKeyValue(lang) {
   switch (lang) {
+    case "en":
+      return {
+        key: "en-us",
+        value: "english"
+      };
     case "fr":
       return {
         key: "fr-fr",
@@ -331,6 +335,11 @@ function langToKeyValue(lang) {
         key: "es-ar",
         value: "spanish"
       };
+    case "frca":
+      return {
+        key: "fr-ca",
+        value: "frenchCanada"
+      };
     default:
       return {
         key: "en-us",
@@ -341,6 +350,8 @@ function langToKeyValue(lang) {
 
 function langToIso(lang) {
   switch (lang) {
+    case "en":
+      return "en-us";
     case "fr":
       return "fr-fr";
     case "nl":
@@ -349,13 +360,36 @@ function langToIso(lang) {
       return "de-de";
     case "es":
       return "es-ar";
+    case "frca":
+      return "fr-ca";
     default:
       return "en-us";
   }
 }
 
+function isoToLang(iso) {
+  switch (iso) {
+    case "en-us":
+      return "en";
+    case "fr-fr":
+      return "fr";
+    case "nl-nl":
+      return "nl";
+    case "de-de":
+      return "de";
+    case "es-ar":
+      return "es";
+    case "fr-ca":
+      return "frca";
+    default:
+      return "en";
+  }
+}
+
 function langToName(lang) {
   switch (lang) {
+    case "en":
+      return "english";
     case "fr":
       return "french";
     case "nl":
@@ -364,6 +398,8 @@ function langToName(lang) {
       return "german";
     case "es":
       return "spanish";
+    case "frca":
+      return "frenchCanada";
     default:
       return "english";
   }
@@ -371,6 +407,8 @@ function langToName(lang) {
 
 function isoToName(iso) {
   switch (iso) {
+    case "en-us":
+      return "english";
     case "fr-fr":
       return "french";
     case "nl-nl":
@@ -379,6 +417,8 @@ function isoToName(iso) {
       return "german";
     case "es-ar":
       return "spanish";
+    case "fr-ca":
+      return "frenchCanada";
     default:
       return "english";
   }
@@ -394,6 +434,53 @@ function keyValueLangs(langPreferences) {
   }, []);
 }
 
+function getLanguagesISOCodeMap() {
+  const languages = allSupportedLanguages();
+  const languageISOCodeMap = languages.reduce((acc, lang) => {
+    const languageIso = isoToLang(lang);
+    if (languageIso) {
+      if (Object.keys(acc).length < 1) {
+        return {[languageIso]: lang};
+      }
+      return {...acc, [languageIso]: lang};
+    }
+    console.error(`Invalid language name for ISO code ${lang}`);
+    return acc;
+  }, {});
+  return languageISOCodeMap;
+}
+
+function getLanguagesISOEmptyObject() {
+  const languages = allSupportedLanguages();
+  const languageISOEmptyObject = languages.reduce((acc, lang) => {
+    if (lang) {
+      if (Object.keys(acc).length < 1) {
+        return {[lang]: ""};
+      }
+      return {...acc, [lang]: ""};
+    }
+    console.error(`Invalid language name for ISO code ${lang}`);
+    return acc;
+  }, {});
+  return languageISOEmptyObject;
+}
+
+function getLanguagesISONameMap() {
+  const languages = allSupportedLanguages();
+  const languageISONameMap = languages.reduce((acc, lang) => {
+    const languageName = isoToName(lang);
+    if (lang) {
+      if (Object.keys(acc).length < 1) {
+        return {[lang]: languageName};
+      }
+      return {...acc, [lang]: languageName};
+    }
+    console.error(`Invalid language name for ISO code ${lang}`);
+    return acc;
+  }, {});
+  return languageISONameMap;
+}
+
 module.exports = {
   allSupportedContexts,
   allSupportedLanguages,
@@ -404,6 +491,10 @@ module.exports = {
   isoToName,
   keyValueLangs,
   langToIso,
+  isoToLang,
   langToName,
-  updateMany
+  updateMany,
+  getLanguagesISOCodeMap,
+  getLanguagesISOEmptyObject,
+  getLanguagesISONameMap
 };

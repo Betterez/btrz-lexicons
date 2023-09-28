@@ -8,6 +8,10 @@ const {
   isoToName,
   keyValueLangs,
   langToIso,
+  isoToLang,
+  getLanguagesISOCodeMap,
+  getLanguagesISOEmptyObject,
+  getLanguagesISONameMap,
   langToName,
   updateMany
 } = require("./service");
@@ -27,6 +31,10 @@ module.exports = {
   isoToName,
   keyValueLangs,
   langToIso,
+  isoToLang,
+  getLanguagesISOCodeMap,
+  getLanguagesISOEmptyObject,
+  getLanguagesISONameMap,
   langToName,
   updateMany,
   Lexicon,
