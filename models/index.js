@@ -41,6 +41,7 @@ class Lexicon {
     const models = {
       "Lexicon": {
         "id": "Lexicon",
+        "type": "object",
         "required": ["key", "values"],
         "properties": {
           "_id": {
