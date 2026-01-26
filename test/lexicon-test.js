@@ -115,13 +115,15 @@ describe("Lexicon", () => {
   describe("allSupportedLanguages", () => {
     it("should return all the supported languages", () => {
       const result = allSupportedLanguages();
-      expect(result.length).to.be.eql(6);
+      expect(result.length).to.be.eql(8);
       expect(result).to.contain("en-us");
       expect(result).to.contain("fr-fr");
       expect(result).to.contain("nl-nl");
       expect(result).to.contain("de-de");
       expect(result).to.contain("es-ar");
       expect(result).to.contain("fr-ca");
+      expect(result).to.contain("ar-ma");
+      expect(result).to.contain("pt-br");
       expect(result).not.to.contain("it-it");
     });
   });
@@ -152,9 +154,9 @@ describe("Lexicon", () => {
   describe("keyValueLangs", () => {
     it("should return an array with keys for the iso lang and value as a string for values that are true", () => {
       const result = keyValueLangs({
-        en: true, fr: true, es: false, nl: true, frca: true
+        en: true, fr: true, es: false, nl: true, frca: true, arma: true, ptbr: true
       });
-      expect(result.length).to.be.eql(4);
+      expect(result.length).to.be.eql(6);
       expect(result[0]).to.eql({
         key: "en-us", value: "english"
       });
@@ -167,6 +169,12 @@ describe("Lexicon", () => {
       expect(result[3]).to.eql({
         key: "fr-ca", value: "frenchCanada"
       });
+      expect(result[4]).to.eql({
+        key: "ar-ma", value: "arabicMarocco"
+      });
+      expect(result[5]).to.eql({
+        key: "pt-br", value: "portugueseBrazil"
+      });
     });
   });
 
@@ -178,6 +186,8 @@ describe("Lexicon", () => {
       expect(langToIso("de")).to.be.eql("de-de");
       expect(langToIso("es")).to.be.eql("es-ar");
       expect(langToIso("frca")).to.be.eql("fr-ca");
+      expect(langToIso("arma")).to.be.eql("ar-ma");
+      expect(langToIso("ptbr")).to.be.eql("pt-br");
     });
 
     it("should default to english", () => {
@@ -197,6 +207,8 @@ describe("Lexicon", () => {
       expect(langToName("nl")).to.be.eql("dutch");
       expect(langToName("es")).to.be.eql("spanish");
       expect(langToName("frca")).to.be.eql("frenchCanada");
+      expect(langToName("arma")).to.be.eql("arabicMarocco");
+      expect(langToName("ptbr")).to.be.eql("portugueseBrazil");
       expect(langToName("kl")).to.be.eql("english");
     });
   });
@@ -213,6 +225,8 @@ describe("Lexicon", () => {
       expect(isoToName("nl-nl")).to.be.eql("dutch");
       expect(isoToName("es-ar")).to.be.eql("spanish");
       expect(isoToName("fr-ca")).to.be.eql("frenchCanada");
+      expect(isoToName("ar-ma")).to.be.eql("arabicMarocco");
+      expect(isoToName("pt-br")).to.be.eql("portugueseBrazil");
       expect(isoToName("kl")).to.be.eql("english");
     });
   });

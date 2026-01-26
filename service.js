@@ -4,7 +4,7 @@ const {
   allSupportedContexts,
   allSupportedLanguages,
   Lexicon
-} = require("./models");
+} = require("./models/index.js");
 
 function generateLexiconKey(accountId, modelName, field) {
   return `${modelName}-${field}-${accountId}-${uuid.v4()}`;
@@ -340,6 +340,16 @@ function langToKeyValue(lang) {
         key: "fr-ca",
         value: "frenchCanada"
       };
+    case "arma":
+      return {
+        key: "ar-ma",
+        value: "arabicMarocco"
+      };
+    case "ptbr":
+      return {
+        key: "pt-br",
+        value: "portugueseBrazil"
+      };
     default:
       return {
         key: "en-us",
@@ -362,6 +372,10 @@ function langToIso(lang) {
       return "es-ar";
     case "frca":
       return "fr-ca";
+    case "arma":
+      return "ar-ma";
+    case "ptbr":
+      return "pt-br";
     default:
       return "en-us";
   }
@@ -381,6 +395,10 @@ function isoToLang(iso) {
       return "es";
     case "fr-ca":
       return "frca";
+    case "ar-ma":
+      return "arma";
+    case "pt-br":
+      return "ptbr";
     default:
       return "en";
   }
@@ -400,6 +418,10 @@ function langToName(lang) {
       return "spanish";
     case "frca":
       return "frenchCanada";
+    case "arma":
+      return "arabicMarocco";
+    case "ptbr":
+      return "portugueseBrazil";
     default:
       return "english";
   }
@@ -419,6 +441,10 @@ function isoToName(iso) {
       return "spanish";
     case "fr-ca":
       return "frenchCanada";
+    case "ar-ma":
+      return "arabicMarocco";
+    case "pt-br":
+      return "portugueseBrazil";
     default:
       return "english";
   }

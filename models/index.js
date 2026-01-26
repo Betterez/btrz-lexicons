@@ -8,7 +8,7 @@ function allSupportedContexts() {
 }
 
 function allSupportedLanguages() {
-  return ["en-us", "fr-fr", "de-de", "nl-nl", "es-ar", "fr-ca"];
+  return ["en-us", "fr-fr", "de-de", "nl-nl", "es-ar", "fr-ca", "ar-ma", "pt-br"];
 }
 
 function getLangsDoc() {
@@ -111,7 +111,9 @@ class LexiconFixture {
         "nl-nl": chance.sentence(),
         "de-de": chance.sentence(),
         "es-ar": chance.sentence(),
-        "fr-ca": chance.sentence()
+        "fr-ca": chance.sentence(),
+        "ar-ma": chance.sentence(),
+        "pt-br": chance.sentence()
       },
       context: [
         "app",
