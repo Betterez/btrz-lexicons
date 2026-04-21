@@ -1,12 +1,16 @@
-const assert = require("assert");
+const assert = require("node:assert/strict");
 const {
-  expect
-} = require("chai");
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  after
+} = require("node:test");
 const {
   Chance
 } = require("chance");
 const chance = new Chance();
-const config = require("../config")(process.env);
+const config = require("../config.js")(process.env);
 const {
   SimpleDao
 } = require("btrz-simple-dao");
@@ -26,13 +30,13 @@ const {
   getLanguagesISOEmptyObject,
   getLanguagesISONameMap
 
-} = require("../index");
+} = require("../index.js");
 const accountId = SimpleDao.objectId().toHexString();
 
 const {
   Lexicon,
   LexiconFixture
-} = require("../models");
+} = require("../models/index.js");
 const lexiconCollectionName = Lexicon.collectionName();
 
 function getValues() {
@@ -92,7 +96,6 @@ function fail() {
   throw new Error("Test failed");
 }
 
-
 describe("Lexicon", () => {
   beforeEach(() => {
     return fixturesFactory.connection.then((db) => {
@@ -112,42 +115,47 @@ describe("Lexicon", () => {
     });
   });
 
+  after(async () => {
+    const mongoClient = await simpleDao.getCurrentClient();
+    await mongoClient.close();
+  });
+
   describe("allSupportedLanguages", () => {
     it("should return all the supported languages", () => {
       const result = allSupportedLanguages();
-      expect(result.length).to.be.eql(8);
-      expect(result).to.contain("en-us");
-      expect(result).to.contain("fr-fr");
-      expect(result).to.contain("nl-nl");
-      expect(result).to.contain("de-de");
-      expect(result).to.contain("es-ar");
-      expect(result).to.contain("fr-ca");
-      expect(result).to.contain("ar-ma");
-      expect(result).to.contain("pt-br");
-      expect(result).not.to.contain("it-it");
+      assert.deepEqual(result.length, 8);
+      assert.ok(result.includes("en-us"));
+      assert.ok(result.includes("fr-fr"));
+      assert.ok(result.includes("nl-nl"));
+      assert.ok(result.includes("de-de"));
+      assert.ok(result.includes("es-ar"));
+      assert.ok(result.includes("fr-ca"));
+      assert.ok(result.includes("ar-ma"));
+      assert.ok(result.includes("pt-br"));
+      assert.ok(!result.includes("it-it"));
     });
   });
 
   describe("allSupportedContexts", () => {
     it("should return all the supported context", () => {
       const result = allSupportedContexts();
-      expect(result.length).to.be.eql(4);
-      expect(result).to.contain("app");
-      expect(result).to.contain("websales");
-      expect(result).to.contain("vue");
-      expect(result).to.contain("calendarwebsales");
-      expect(result).not.to.contain("mobile");
+      assert.deepEqual(result.length, 4);
+      assert.ok(result.includes("app"));
+      assert.ok(result.includes("websales"));
+      assert.ok(result.includes("vue"));
+      assert.ok(result.includes("calendarwebsales"));
+      assert.ok(!result.includes("mobile"));
     });
   });
 
   describe("generateLexiconKey", () => {
     it("should return a properly formatted key", () => {
       const key = generateLexiconKey("123", "something", "another");
-      expect(key).to.contain("-");
-      expect(key).to.contain("123");
-      expect(key).to.contain("something");
-      expect(key).to.contain("another");
-      expect(key.split("-").length).to.be.eql(8);
+      assert.ok(key.includes("-"));
+      assert.ok(key.includes("123"));
+      assert.ok(key.includes("something"));
+      assert.ok(key.includes("another"));
+      assert.deepEqual(key.split("-").length, 8);
     });
   });
 
@@ -156,23 +164,23 @@ describe("Lexicon", () => {
       const result = keyValueLangs({
         en: true, fr: true, es: false, nl: true, frca: true, arma: true, ptbr: true
       });
-      expect(result.length).to.be.eql(6);
-      expect(result[0]).to.eql({
+      assert.deepEqual(result.length, 6);
+      assert.deepEqual(result[0], {
         key: "en-us", value: "english"
       });
-      expect(result[1]).to.eql({
+      assert.deepEqual(result[1], {
         key: "fr-fr", value: "french"
       });
-      expect(result[2]).to.eql({
+      assert.deepEqual(result[2], {
         key: "nl-nl", value: "dutch"
       });
-      expect(result[3]).to.eql({
+      assert.deepEqual(result[3], {
         key: "fr-ca", value: "frenchCanada"
       });
-      expect(result[4]).to.eql({
+      assert.deepEqual(result[4], {
         key: "ar-ma", value: "arabicMarocco"
       });
-      expect(result[5]).to.eql({
+      assert.deepEqual(result[5], {
         key: "pt-br", value: "portugueseBrazil"
       });
     });
@@ -180,54 +188,54 @@ describe("Lexicon", () => {
 
   describe("langToIso", () => {
     it("should map two letters lang to the iso used in lexicons", () => {
-      expect(langToIso("en")).to.be.eql("en-us");
-      expect(langToIso("fr")).to.be.eql("fr-fr");
-      expect(langToIso("nl")).to.be.eql("nl-nl");
-      expect(langToIso("de")).to.be.eql("de-de");
-      expect(langToIso("es")).to.be.eql("es-ar");
-      expect(langToIso("frca")).to.be.eql("fr-ca");
-      expect(langToIso("arma")).to.be.eql("ar-ma");
-      expect(langToIso("ptbr")).to.be.eql("pt-br");
+      assert.deepEqual(langToIso("en"), "en-us");
+      assert.deepEqual(langToIso("fr"), "fr-fr");
+      assert.deepEqual(langToIso("nl"), "nl-nl");
+      assert.deepEqual(langToIso("de"), "de-de");
+      assert.deepEqual(langToIso("es"), "es-ar");
+      assert.deepEqual(langToIso("frca"), "fr-ca");
+      assert.deepEqual(langToIso("arma"), "ar-ma");
+      assert.deepEqual(langToIso("ptbr"), "pt-br");
     });
 
     it("should default to english", () => {
-      expect(langToIso()).to.be.eql("en-us");
+      assert.deepEqual(langToIso(), "en-us");
     });
   });
 
   describe("langToName", () => {
     it("return english by default", () => {
-      expect(langToName()).to.be.eql("english");
+      assert.deepEqual(langToName(), "english");
     });
 
     it("return the proper name", () => {
-      expect(langToName("en")).to.be.eql("english");
-      expect(langToName("fr")).to.be.eql("french");
-      expect(langToName("de")).to.be.eql("german");
-      expect(langToName("nl")).to.be.eql("dutch");
-      expect(langToName("es")).to.be.eql("spanish");
-      expect(langToName("frca")).to.be.eql("frenchCanada");
-      expect(langToName("arma")).to.be.eql("arabicMarocco");
-      expect(langToName("ptbr")).to.be.eql("portugueseBrazil");
-      expect(langToName("kl")).to.be.eql("english");
+      assert.deepEqual(langToName("en"), "english");
+      assert.deepEqual(langToName("fr"), "french");
+      assert.deepEqual(langToName("de"), "german");
+      assert.deepEqual(langToName("nl"), "dutch");
+      assert.deepEqual(langToName("es"), "spanish");
+      assert.deepEqual(langToName("frca"), "frenchCanada");
+      assert.deepEqual(langToName("arma"), "arabicMarocco");
+      assert.deepEqual(langToName("ptbr"), "portugueseBrazil");
+      assert.deepEqual(langToName("kl"), "english");
     });
   });
 
   describe("isoToName", () => {
     it("return english by default", () => {
-      expect(isoToName()).to.be.eql("english");
+      assert.deepEqual(isoToName(), "english");
     });
 
     it("return the proper name", () => {
-      expect(isoToName("en-us")).to.be.eql("english");
-      expect(isoToName("fr-fr")).to.be.eql("french");
-      expect(isoToName("de-de")).to.be.eql("german");
-      expect(isoToName("nl-nl")).to.be.eql("dutch");
-      expect(isoToName("es-ar")).to.be.eql("spanish");
-      expect(isoToName("fr-ca")).to.be.eql("frenchCanada");
-      expect(isoToName("ar-ma")).to.be.eql("arabicMarocco");
-      expect(isoToName("pt-br")).to.be.eql("portugueseBrazil");
-      expect(isoToName("kl")).to.be.eql("english");
+      assert.deepEqual(isoToName("en-us"), "english");
+      assert.deepEqual(isoToName("fr-fr"), "french");
+      assert.deepEqual(isoToName("de-de"), "german");
+      assert.deepEqual(isoToName("nl-nl"), "dutch");
+      assert.deepEqual(isoToName("es-ar"), "spanish");
+      assert.deepEqual(isoToName("fr-ca"), "frenchCanada");
+      assert.deepEqual(isoToName("ar-ma"), "arabicMarocco");
+      assert.deepEqual(isoToName("pt-br"), "portugueseBrazil");
+      assert.deepEqual(isoToName("kl"), "english");
     });
   });
 
@@ -239,7 +247,7 @@ describe("Lexicon", () => {
 
         return insertMany(simpleDao, lexiconEntries)
           .then(fail, (err) => {
-            expect(err.message).to.equal(`lexicon entry with name ${lexiconEntries[1].name} ` +
+            assert.strictEqual(err.message, `lexicon entry with name ${lexiconEntries[1].name} ` +
               `is missing the following required keys: ${key}`);
           });
       });
@@ -252,7 +260,7 @@ describe("Lexicon", () => {
 
       return insertMany(simpleDao, lexiconEntries)
         .then(fail, (err) => {
-          expect(err.message).to.equal(`lexicon entry with name ${lexiconEntries[1].name} ` +
+          assert.strictEqual(err.message, `lexicon entry with name ${lexiconEntries[1].name} ` +
             "contains the following unknown keys: unknownProperty");
         });
     });
@@ -281,7 +289,7 @@ describe("Lexicon", () => {
         })
         .toArray()
         .then((existingEntries) => {
-          expect(existingEntries).to.have.length(0);
+          assert.strictEqual(existingEntries.length, 0);
           return insertMany(simpleDao, lexiconEntries);
         })
         .then((result) => {
@@ -289,7 +297,7 @@ describe("Lexicon", () => {
             return s.key;
           });
 
-          expect(result).to.deep.equal({
+          assert.deepEqual(result, {
             successes: lexiconEntries.map((entry) => {
               return {
                 name: entry.name,
@@ -308,7 +316,7 @@ describe("Lexicon", () => {
             .toArray();
         })
         .then((insertedEntries) => {
-          expect(insertedEntries).to.have.length(lexiconEntries.length);
+          assert.strictEqual(insertedEntries.length, lexiconEntries.length);
         });
     });
 
@@ -329,7 +337,7 @@ describe("Lexicon", () => {
             return s.key;
           });
 
-          expect(result).to.deep.equal({
+          assert.deepEqual(result, {
             successes: lexiconEntries.map((entry) => {
               const keyForName = result.successes.find((successRecord) => {
                 return successRecord.name === entry.name;
@@ -345,8 +353,8 @@ describe("Lexicon", () => {
 
           result.successes.forEach((successRecord) => {
             // When creating lexicon entries for an account, the key should include the account ID and a random uuid string
-            expect(successRecord.key).to.include(successRecord.name);
-            expect(successRecord.key).to.include(accountId);
+            assert.ok(successRecord.key.includes(successRecord.name));
+            assert.ok(successRecord.key.includes(accountId));
           });
 
           return simpleDao.for(Lexicon)
@@ -358,7 +366,7 @@ describe("Lexicon", () => {
             .toArray();
         })
         .then((insertedEntries) => {
-          expect(insertedEntries).to.have.length(lexiconEntries.length);
+          assert.strictEqual(insertedEntries.length, lexiconEntries.length);
         });
     });
 
@@ -374,17 +382,17 @@ describe("Lexicon", () => {
           return insertMany(simpleDao, lexiconEntries);
         })
         .then((result) => {
-          expect(result.successes).to.deep.equal([]);
-          expect(result.failures).to.have.length(lexiconEntries.length);
+          assert.deepEqual(result.successes, []);
+          assert.strictEqual(result.failures.length, lexiconEntries.length);
 
           result.failures.forEach((failure) => {
             const matchingLexiconEntry = lexiconEntries.find((e) => {
               return e.name === failure.name;
             });
-            expect(matchingLexiconEntry).to.exist;
-            expect(failure.name).to.eql(matchingLexiconEntry.name);
-            expect(failure.message).to.include("E11000 duplicate key error");
-            expect(failure.message).to.include(`${matchingLexiconEntry.name}`);
+            assert.ok(matchingLexiconEntry !== undefined && matchingLexiconEntry !== null);
+            assert.deepEqual(failure.name, matchingLexiconEntry.name);
+            assert.ok(failure.message.includes("E11000 duplicate key error"));
+            assert.ok(failure.message.includes(`${matchingLexiconEntry.name}`));
           });
         });
     });
@@ -401,17 +409,17 @@ describe("Lexicon", () => {
           return insertMany(simpleDao, lexiconEntries);
         })
         .then((result) => {
-          expect(result.successes).to.deep.equal([]);
-          expect(result.failures).to.have.length(lexiconEntries.length);
+          assert.deepEqual(result.successes, []);
+          assert.strictEqual(result.failures.length, lexiconEntries.length);
 
           result.failures.forEach((failure) => {
             const matchingLexiconEntry = lexiconEntries.find((e) => {
               return e.name === failure.name;
             });
-            expect(matchingLexiconEntry).to.exist;
-            expect(failure.name).to.eql(matchingLexiconEntry.name);
-            expect(failure.message).to.include("E11000 duplicate key error");
-            expect(failure.message).to.include(`${matchingLexiconEntry.name}`);
+            assert.ok(matchingLexiconEntry !== undefined && matchingLexiconEntry !== null);
+            assert.deepEqual(failure.name, matchingLexiconEntry.name);
+            assert.ok(failure.message.includes("E11000 duplicate key error"));
+            assert.ok(failure.message.includes(`${matchingLexiconEntry.name}`));
           });
         });
     });
@@ -437,23 +445,23 @@ describe("Lexicon", () => {
           return insertMany(simpleDao, lexiconEntries2);
         })
         .then((result) => {
-          expect(result.successes).to.deep.equal(lexiconEntries2.slice(0, 4).map((entry) => {
+          assert.deepEqual(result.successes, lexiconEntries2.slice(0, 4).map((entry) => {
             return {
               name: entry.name,
               key: entry.name
             };
           }));
 
-          expect(result.failures).to.have.length(failedEntries.length);
+          assert.strictEqual(result.failures.length, failedEntries.length);
 
           result.failures.forEach((failure) => {
             const matchingLexiconEntry = failedEntries.find((e) => {
               return e.name === failure.name;
             });
-            expect(matchingLexiconEntry).to.exist;
-            expect(failure.name).to.eql(matchingLexiconEntry.name);
-            expect(failure.message).to.include("E11000 duplicate key error");
-            expect(failure.message).to.include(`${matchingLexiconEntry.name}`);
+            assert.ok(matchingLexiconEntry !== undefined && matchingLexiconEntry !== null);
+            assert.deepEqual(failure.name, matchingLexiconEntry.name);
+            assert.ok(failure.message.includes("E11000 duplicate key error"));
+            assert.ok(failure.message.includes(`${matchingLexiconEntry.name}`));
           });
         });
     });
@@ -476,7 +484,7 @@ describe("Lexicon", () => {
 
       return insertMany(mockDao, [getValidLexiconEntryRequest()])
         .then(fail, (err) => {
-          expect(err).to.deep.equal(unexpectedDatabaseError);
+          assert.deepEqual(err, unexpectedDatabaseError);
         });
     });
   });
@@ -490,7 +498,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, lexiconUpdateRequests);
         fail();
       } catch (err) {
-        expect(err.message).to.equal("lexicon update request is missing a \"key\"");
+        assert.strictEqual(err.message, "lexicon update request is missing a \"key\"");
       }
     });
 
@@ -503,7 +511,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, lexiconEntries);
         fail();
       } catch (err) {
-        expect(err.message).to.equal(`lexicon update request with key ${lexiconEntries[1].key} ` +
+        assert.strictEqual(err.message, `lexicon update request with key ${lexiconEntries[1].key} ` +
           "contains the following unknown properties: unknownProperty");
       }
     });
@@ -513,7 +521,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, []);
         fail();
       } catch (err) {
-        expect(err.message).to.equal("lexiconEntryUpdates must be an array with at least one item");
+        assert.strictEqual(err.message, "lexiconEntryUpdates must be an array with at least one item");
       }
     });
 
@@ -525,7 +533,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, updateEntries);
         fail();
       } catch (err) {
-        expect(err.message).to.equal(`Incomplete lexicon keys: ${updateEntries[0].key}`);
+        assert.strictEqual(err.message, `Incomplete lexicon keys: ${updateEntries[0].key}`);
       }
     });
 
@@ -542,7 +550,7 @@ describe("Lexicon", () => {
       try {
         await updateMany(simpleDao, [updateRequest]);
       } catch (error) {
-        expect(error.message).to.contain("The following lexicon entries do not exist: ");
+        assert.ok(error.message.includes("The following lexicon entries do not exist: "));
       }
     });
 
@@ -562,7 +570,7 @@ describe("Lexicon", () => {
         await updateMany(simpleDao, [updateRequest]);
         fail();
       } catch (err) {
-        expect(err.message).to.contain("Incomplete lexicon keys: ");
+        assert.ok(err.message.includes("Incomplete lexicon keys: "));
       }
     });
 
@@ -584,9 +592,9 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.values).to.deep.eql(updateRequest.values);
-      expect(updatedDocument.context).to.deep.eql(updateRequest.context);
-      expect(updatedDocument.accountId).to.equal("");
+      assert.deepEqual(updatedDocument.values, updateRequest.values);
+      assert.deepEqual(updatedDocument.context, updateRequest.context);
+      assert.strictEqual(updatedDocument.accountId, "");
     });
 
     it("should update the values contained in a single existing lexicon entry", async () => {
@@ -606,7 +614,7 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+      assert.deepEqual(updatedDocument.values, updateRequest.values);
     });
 
     it("should update the values contained in multiple existing lexicon entries", async () => {
@@ -648,8 +656,8 @@ describe("Lexicon", () => {
           return doc.key === updateRequest.key;
         });
 
-        expect(updatedDocument).to.exist;
-        expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+        assert.ok(updatedDocument !== undefined && updatedDocument !== null);
+        assert.deepEqual(updatedDocument.values, updateRequest.values);
       });
     });
 
@@ -676,7 +684,7 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.values).to.deep.eql(Object.assign({}, lexiconDbDocument.values, updateRequest.values));
+      assert.deepEqual(updatedDocument.values, Object.assign({}, lexiconDbDocument.values, updateRequest.values));
     });
 
     it("should add a translation for a new language if the existing lexicon entry is missing that language", async () => {
@@ -707,7 +715,7 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.values).to.deep.eql(Object.assign({}, lexiconDbDocument.values, updateRequest.values));
+      assert.deepEqual(updatedDocument.values, Object.assign({}, lexiconDbDocument.values, updateRequest.values));
     });
 
     it("should not update the values of a lexicon entry if the update object does not specify new values", async () => {
@@ -727,7 +735,7 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.values).to.deep.eql(lexiconDbDocument.values);
+      assert.deepEqual(updatedDocument.values, lexiconDbDocument.values);
     });
 
     it("should update the context of a single existing lexicon entry", async () => {
@@ -747,7 +755,7 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.context).to.deep.eql(updateRequest.context);
+      assert.deepEqual(updatedDocument.context, updateRequest.context);
     });
 
     it("should update the context of multiple existing lexicon entries", async () => {
@@ -786,8 +794,8 @@ describe("Lexicon", () => {
           return doc.key === updateRequest.key;
         });
 
-        expect(updatedDocument).to.exist; //eslint-disable-line
-        expect(updatedDocument.context).to.deep.eql(updateRequest.context);
+        assert.ok(updatedDocument !== undefined && updatedDocument !== null); //eslint-disable-line
+        assert.deepEqual(updatedDocument.context, updateRequest.context);
       });
     });
 
@@ -812,7 +820,7 @@ describe("Lexicon", () => {
             .toArray();
         })
         .then(([updatedDocument]) => {
-          expect(updatedDocument.context).to.deep.eql(lexiconDbDocument.context);
+          assert.deepEqual(updatedDocument.context, lexiconDbDocument.context);
         });
     });
 
@@ -839,7 +847,7 @@ describe("Lexicon", () => {
             .toArray();
         })
         .then(([updatedDocument]) => {
-          expect(updatedDocument.values).to.deep.eql(lexiconDbDocument.values);
+          assert.deepEqual(updatedDocument.values, lexiconDbDocument.values);
         });
     });
   });
@@ -853,7 +861,7 @@ describe("Lexicon", () => {
         await createOrUpdateMany(simpleDao, lexiconUpdateRequests);
         fail();
       } catch (err) {
-        expect(err.message).to.equal("lexicon entry with key undefined is missing the following required keys: key");
+        assert.strictEqual(err.message, "lexicon entry with key undefined is missing the following required keys: key");
       }
     });
 
@@ -866,7 +874,7 @@ describe("Lexicon", () => {
         await createOrUpdateMany(simpleDao, lexiconEntries);
         fail();
       } catch (err) {
-        expect(err.message).to.equal(`lexicon entry with key ${lexiconEntries[1].key} ` +
+        assert.strictEqual(err.message, `lexicon entry with key ${lexiconEntries[1].key} ` +
           "contains the following unknown keys: unknownProperty");
       }
     });
@@ -876,7 +884,7 @@ describe("Lexicon", () => {
         await createOrUpdateMany(simpleDao, []);
         fail();
       } catch (err) {
-        expect(err.message).to.equal("lexiconEntries must be an array with at least one item");
+        assert.strictEqual(err.message, "lexiconEntries must be an array with at least one item");
       }
     });
 
@@ -888,7 +896,7 @@ describe("Lexicon", () => {
         await createOrUpdateMany(simpleDao, updateEntries);
         fail();
       } catch (err) {
-        expect(err.message).to.equal(`Incomplete lexicon keys: ${updateEntries[0].key}`);
+        assert.strictEqual(err.message, `Incomplete lexicon keys: ${updateEntries[0].key}`);
       }
     });
 
@@ -915,8 +923,8 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(oldDocument.values).to.deep.eql(lexiconDbDocument.values);
-      expect(updateRequest.values).to.deep.eql(createdDocument.values);
+      assert.deepEqual(oldDocument.values, lexiconDbDocument.values);
+      assert.deepEqual(updateRequest.values, createdDocument.values);
     });
 
     it("should insert new documents and update the values contained in multiple existing lexicon entries", async () => {
@@ -957,8 +965,8 @@ describe("Lexicon", () => {
           return doc.key === updateRequest.key;
         });
 
-        expect(updatedDocument).to.exist;
-        expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+        assert.ok(updatedDocument !== undefined && updatedDocument !== null);
+        assert.deepEqual(updatedDocument.values, updateRequest.values);
       });
     });
 
@@ -979,7 +987,7 @@ describe("Lexicon", () => {
         })
         .toArray();
 
-      expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+      assert.deepEqual(updatedDocument.values, updateRequest.values);
     });
 
     it("should update the values contained in multiple existing lexicon entries", async () => {
@@ -1018,8 +1026,8 @@ describe("Lexicon", () => {
           return doc.key === updateRequest.key;
         });
 
-        expect(updatedDocument).to.exist;
-        expect(updatedDocument.values).to.deep.eql(updateRequest.values);
+        assert.ok(updatedDocument !== undefined && updatedDocument !== null);
+        assert.deepEqual(updatedDocument.values, updateRequest.values);
       });
     });
   });
@@ -1029,13 +1037,13 @@ describe("Lexicon", () => {
       const languages = allSupportedLanguages();
       const result = getLanguagesISOCodeMap();
 
-      expect(Object.keys(result).length).to.be.eql(languages.length);
-      expect(languages[0]).to.be.eql(result.en);
-      expect(languages[1]).to.be.eql(result.fr);
-      expect(languages[2]).to.be.eql(result.de);
-      expect(languages[3]).to.be.eql(result.nl);
-      expect(languages[4]).to.be.eql(result.es);
-      expect(languages[5]).to.be.eql(result.frca);
+      assert.deepEqual(Object.keys(result).length, languages.length);
+      assert.deepEqual(languages[0], result.en);
+      assert.deepEqual(languages[1], result.fr);
+      assert.deepEqual(languages[2], result.de);
+      assert.deepEqual(languages[3], result.nl);
+      assert.deepEqual(languages[4], result.es);
+      assert.deepEqual(languages[5], result.frca);
     });
   });
 
@@ -1044,13 +1052,13 @@ describe("Lexicon", () => {
       const languages = allSupportedLanguages();
       const result = getLanguagesISOEmptyObject();
 
-      expect(Object.keys(result).length).to.be.eql(languages.length);
-      expect(languages[0]).to.be.eql(Object.keys(result)[0]);
-      expect(languages[1]).to.be.eql(Object.keys(result)[1]);
-      expect(languages[2]).to.be.eql(Object.keys(result)[2]);
-      expect(languages[3]).to.be.eql(Object.keys(result)[3]);
-      expect(languages[4]).to.be.eql(Object.keys(result)[4]);
-      expect(languages[5]).to.be.eql(Object.keys(result)[5]);
+      assert.deepEqual(Object.keys(result).length, languages.length);
+      assert.deepEqual(languages[0], Object.keys(result)[0]);
+      assert.deepEqual(languages[1], Object.keys(result)[1]);
+      assert.deepEqual(languages[2], Object.keys(result)[2]);
+      assert.deepEqual(languages[3], Object.keys(result)[3]);
+      assert.deepEqual(languages[4], Object.keys(result)[4]);
+      assert.deepEqual(languages[5], Object.keys(result)[5]);
     });
   });
 
@@ -1059,13 +1067,13 @@ describe("Lexicon", () => {
       const languages = allSupportedLanguages();
       const result = getLanguagesISONameMap();
 
-      expect(Object.keys(result).length).to.be.eql(languages.length);
-      expect(result[languages[0]]).to.be.eql("english");
-      expect(result[languages[1]]).to.be.eql("french");
-      expect(result[languages[2]]).to.be.eql("german");
-      expect(result[languages[3]]).to.be.eql("dutch");
-      expect(result[languages[4]]).to.be.eql("spanish");
-      expect(result[languages[5]]).to.be.eql("frenchCanada");
+      assert.deepEqual(Object.keys(result).length, languages.length);
+      assert.deepEqual(result[languages[0]], "english");
+      assert.deepEqual(result[languages[1]], "french");
+      assert.deepEqual(result[languages[2]], "german");
+      assert.deepEqual(result[languages[3]], "dutch");
+      assert.deepEqual(result[languages[4]], "spanish");
+      assert.deepEqual(result[languages[5]], "frenchCanada");
     });
   });
 });
