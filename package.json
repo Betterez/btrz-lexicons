@@ -26,16 +26,14 @@
   },
   "homepage": "https://github.com/Betterez/btrz-lexicons#readme",
   "devDependencies": {
-    "btrz-mongo-factory": "4.4.0",
+    "btrz-mongo-factory": "4.7.0",
     "btrz-simple-dao": "4.6.0",
     "chance": "1.1.13",
-    "eslint": "^4.19.1 || ^5.3.0",
-    "eslint-config-btrz": "^1.6.0",
-    "eslint-plugin-html": "^5.0.3",
-    "eslint-plugin-import": "^2.16.0",
-    "eslint-plugin-vue": "^5.1.0"
+    "eslint": "10.6.0",
+    "eslint-config-btrz-base": "^2.0.0",
+    "globals": "^17.7.0"
   },
   "dependencies": {
-    "uuid": "14.0.0"
+    "uuid": "14.0.1"
   }
 }
